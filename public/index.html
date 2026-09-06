@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CloudTodo - DevOps Task Manager</title>
+<style>
+:root {
+  --navy:#1a1a2e; --navy2:#16213e; --blue:#0f3460; --accent:#4F81BD;
+  --green:#00b894; --orange:#fdcb6e; --red:#e17055; --purple:#6c5ce7;
+  --text:#eaeaea; --text2:#a0a0b8; --card:#1e1e3a; --card2:#252548;
+}
+* { margin:0; padding:0; box-sizing:border-box; font-family:'Inter','Segoe UI',sans-serif; }
+body { background:var(--navy); color:var(--text); display:flex; min-height:100vh; }
+
+/* SIDEBAR */
+.sidebar { width:240px; background:var(--navy2); padding:24px 0; flex-shrink:0; border-right:1px solid rgba(255,255,255,0.05); }
+.sidebar .logo { padding:0 24px 28px; font-size:20px; font-weight:800; display:flex; align-items:center; gap:10px; }
+.sidebar .logo span { color:var(--accent); }
+.nav-item { padding:12px 24px; display:flex; align-items:center; gap:12px; font-size:14px; color:var(--text2); cursor:pointer; transition:all 0.2s; border-left:3px solid transparent; }
+.nav-item:hover, .nav-item.active { background:rgba(79,129,189,0.1); color:var(--text); border-left-color:var(--accent); }
+.nav-item .count { margin-left:auto; background:var(--card); padding:2px 8px; border-radius:10px; font-size:11px; }
+.sidebar .tag-section { padding:16px 24px; }
+.sidebar .tag-section h4 { font-size:11px; text-transform:uppercase; color:var(--text2); margin-bottom:12px; letter-spacing:1px; }
+.tag-item { padding:6px 0; display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text2); cursor:pointer; }
+.tag-item .dot { width:8px; height:8px; border-radius:50%; }
+
+/* MAIN */
+.main { flex:1; padding:32px 40px; overflow-y:auto; }
+.header { display:flex; justify-content:space-between; align-items:center; margin-bottom:28px; }
+.header h1 { font-size:28px; font-weight:700; }
+.header .date { color:var(--text2); font-size:13px; margin-top:4px; }
+.cloud-badge { background:linear-gradient(135deg,var(--green),var(--accent)); padding:8px 16px; border-radius:8px; font-size:12px; font-weight:600; display:flex; align-items:center; gap:8px; }
+
+/* STATS CARDS */
+.stats { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:28px; }
+.stat-card { background:var(--card); padding:20px; border-radius:14px; border:1px solid rgba(255,255,255,0.05); }
+.stat-card .icon { width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:20px; margin-bottom:12px; }
+.stat-card .num { font-size:28px; font-weight:800; }
+.stat-card .lbl { font-size:12px; color:var(--text2); margin-top:2px; }
+
+/* PROGRESS BAR */
+.progress-section { background:var(--card); padding:20px; border-radius:14px; margin-bottom:24px; }
+.progress-section .top { display:flex; justify-content:space-between; margin-bottom:10px; font-size:14px; }
+.progress-bar { height:10px; background:var(--navy); border-radius:5px; overflow:hidden; }
+.progress-fill { height:100%; background:linear-gradient(90deg,var(--green),var(--accent)); border-radius:5px; transition:width 0.5s; }
+
+/* INPUT */
+.add-bar { display:flex; gap:10px; margin-bottom:20px; }
+.add-bar input { flex:1; background:var(--card); border:1px solid rgba(255,255,255,0.1); padding:14px 18px; border-radius:10px; color:var(--text); font-size:14px; outline:none; }
+.add-bar input:focus { border-color:var(--accent); }
+.add-bar select { background:var(--card); border:1px solid rgba(255,255,255,0.1); padding:0 12px; border-radius:10px; color:var(--text); font-size:13px; outline:none; }
+.add-bar button { background:var(--accent); border:none; padding:0 24px; border-radius:10px; color:#fff; font-size:14px; font-weight:600; cursor:pointer; }
+.add-bar button:hover { background:#6b9ad6; }
+
+/* TASKS */
+.tasks { display:flex; flex-direction:column; gap:10px; }
+.task { background:var(--card); padding:16px 20px; border-radius:12px; display:flex; align-items:center; gap:16px; border-left:4px solid var(--accent); transition:all 0.2s; }
+.task:hover { background:var(--card2); transform:translateX(4px); }
+.task.high { border-left-color:var(--red); }
+.task.medium { border-left-color:var(--orange); }
+.task.low { border-left-color:var(--green); }
+.task .check { width:24px; height:24px; border:2px solid var(--text2); border-radius:8px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
+.task.done .check { background:var(--green); border-color:var(--green); }
+.task .info { flex:1; }
+.task .title { font-size:15px; font-weight:500; }
+.task.done .title { text-decoration:line-through; opacity:0.5; }
+.task .meta { display:flex; gap:8px; margin-top:6px; }
+.task .pill { font-size:10px; padding:3px 10px; border-radius:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; }
+.pill.devops { background:rgba(108,92,231,0.2); color:#a29bfe; }
+.pill.docker { background:rgba(79,129,189,0.2); color:#74b9ff; }
+.pill.aws { background:rgba(253,203,110,0.2); color:var(--orange); }
+.pill.cicd { background:rgba(0,184,148,0.2); color:#55efc4; }
+.pill.git { background:rgba(225,112,85,0.2); color:#fab1a0; }
+.pill.monitor { background:rgba(253,121,168,0.2); color:#fd79a8; }
+.pill.notify { background:rgba(85,239,196,0.2); color:#55efc4; }
+.task .priority { font-size:11px; font-weight:700; padding:3px 8px; border-radius:6px; }
+.priority.high { background:rgba(225,112,85,0.2); color:var(--red); }
+.priority.medium { background:rgba(253,203,110,0.2); color:var(--orange); }
+.priority.low { background:rgba(0,184,148,0.2); color:var(--green); }
+.task .del { color:var(--text2); cursor:pointer; font-size:18px; opacity:0.4; transition:0.2s; }
+.task .del:hover { opacity:1; color:var(--red); }
+</style>
+</head>
+<body>
+<div class="sidebar">
+  <div class="logo">☁️ Cloud<span>Todo</span></div>
+  <div class="nav-item active">📋 All Tasks <span class="count" id="navAll">7</span></div>
+  <div class="nav-item">✅ Completed <span class="count" id="navDone">2</span></div>
+  <div class="nav-item">⏳ Pending <span class="count" id="navPending">5</span></div>
+  <div class="nav-item">🔥 High Priority <span class="count" id="navHigh">3</span></div>
+  <div class="tag-section">
+    <h4>Categories</h4>
+    <div class="tag-item"><div class="dot" style="background:#a29bfe"></div>DevOps</div>
+    <div class="tag-item"><div class="dot" style="background:#74b9ff"></div>Docker</div>
+    <div class="tag-item"><div class="dot" style="background:#fdcb6e"></div>AWS</div>
+    <div class="tag-item"><div class="dot" style="background:#55efc4"></div>CI/CD</div>
+    <div class="tag-item"><div class="dot" style="background:#fab1a0"></div>Git</div>
+  </div>
+  <div class="tag-section" style="margin-top:auto">
+    <h4 style="color:#55efc4">🟢 System Healthy</h4>
+    <div class="tag-item" style="font-size:11px">Uptime: 99.9%</div>
+    <div class="tag-item" style="font-size:11px">Region: ap-south-1</div>
+    <div class="tag-item" style="font-size:11px">Container: Running</div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="header">
+    <div>
+      <h1>Project Tasks</h1>
+      <div class="date" id="todayDate">DevOps Pipeline Dashboard</div>
+    </div>
+    <div class="cloud-badge">🚀 Deployed on AWS EC2</div>
+  </div>
+
+  <div class="stats">
+    <div class="stat-card">
+      <div class="icon" style="background:rgba(79,129,189,0.2)">📋</div>
+      <div class="num" id="sTotal">7</div><div class="lbl">Total Tasks</div>
+    </div>
+    <div class="stat-card">
+      <div class="icon" style="background:rgba(253,203,110,0.2)">⏳</div>
+      <div class="num" id="sPending">5</div><div class="lbl">In Progress</div>
+    </div>
+    <div class="stat-card">
+      <div class="icon" style="background:rgba(0,184,148,0.2)">✅</div>
+      <div class="num" id="sDone">2</div><div class="lbl">Completed</div>
+    </div>
+    <div class="stat-card">
+      <div class="icon" style="background:rgba(225,112,85,0.2)">🔥</div>
+      <div class="num" id="sHigh">3</div><div class="lbl">High Priority</div>
+    </div>
+  </div>
+
+  <div class="progress-section">
+    <div class="top"><span>Project Completion Progress</span><span id="pctText">29%</span></div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:29%"></div></div>
+  </div>
+
+  <div class="add-bar">
+    <input type="text" id="taskInput" placeholder="Add a new task...">
+    <select id="tagSelect">
+      <option value="devops">DevOps</option><option value="docker">Docker</option>
+      <option value="aws">AWS</option><option value="cicd">CI/CD</option>
+      <option value="git">Git</option><option value="monitor">Monitor</option>
+    </select>
+    <select id="priSelect">
+      <option value="high">High</option><option value="medium" selected>Medium</option>
+      <option value="low">Low</option>
+    </select>
+    <button onclick="addTask()">+ Add Task</button>
+  </div>
+
+  <div class="tasks" id="taskList"></div>
+</div>
+
+<script>
+const API='/api/tasks'; let tasks=[]; let filter='all';
+
+async function load(){
+  try{const r=await fetch(API);tasks=await r.json();}catch(e){
+    tasks=[
+      {id:1,title:"Set up AWS EC2 instance and configure security groups",completed:true,tag:"devops",priority:"high"},
+      {id:2,title:"Create GitHub repository and push initial code",completed:true,tag:"git",priority:"high"},
+      {id:3,title:"Write Dockerfile and build container image",completed:false,tag:"docker",priority:"high"},
+      {id:4,title:"Configure GitHub Actions CI/CD pipeline",completed:false,tag:"cicd",priority:"high"},
+      {id:5,title:"Integrate DynamoDB for task storage",completed:false,tag:"aws",priority:"medium"},
+      {id:6,title:"Set up CloudWatch monitoring and alarms",completed:false,tag:"monitor",priority:"medium"},
+      {id:7,title:"Add Telegram bot for deployment notifications",completed:false,tag:"notify",priority:"low"},
+    ];
+  }
+  render();
+}
+
+function render(){
+  let shown=tasks;
+  if(filter==='completed')shown=tasks.filter(t=>t.completed);
+  if(filter==='pending')shown=tasks.filter(t=>!t.completed);
+  if(filter==='high')shown=tasks.filter(t=>t.priority==='high');
+
+  document.getElementById('taskList').innerHTML=shown.map(t=>`
+    <div class="task ${t.completed?'done':''} ${t.priority||'medium'}">
+      <div class="check" onclick="toggle(${t.id})">${t.completed?'<span style="color:#fff;font-size:14px">&#10003;</span>':''}</div>
+      <div class="info">
+        <div class="title">${t.title}</div>
+        <div class="meta">
+          <span class="pill ${t.tag||'devops'}">${(t.tag||'devops').toUpperCase()}</span>
+          <span class="priority ${t.priority||'medium'}">${(t.priority||'medium').toUpperCase()}</span>
+        </div>
+      </div>
+      <span class="del" onclick="del(${t.id})">&#215;</span>
+    </div>`).join('');
+
+  // update stats
+  const total=tasks.length, done=tasks.filter(t=>t.completed).length;
+  const pending=total-done, high=tasks.filter(t=>t.priority==='high').length;
+  const pct=total?Math.round(done/total*100):0;
+  document.getElementById('sTotal').textContent=total;
+  document.getElementById('sDone').textContent=done;
+  document.getElementById('sPending').textContent=pending;
+  document.getElementById('sHigh').textContent=high;
+  document.getElementById('navAll').textContent=total;
+  document.getElementById('navDone').textContent=done;
+  document.getElementById('navPending').textContent=pending;
+  document.getElementById('navHigh').textContent=high;
+  document.getElementById('progressFill').style.width=pct+'%';
+  document.getElementById('pctText').textContent=pct+'%';
+}
+
+async function addTask(){
+  const input=document.getElementById('taskInput');
+  const tag=document.getElementById('tagSelect').value;
+  const pri=document.getElementById('priSelect').value;
+  if(!input.value.trim())return;
+  try{
+    const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({title:input.value,tag:tag,priority:pri})});
+    tasks.push(await r.json());
+  }catch(e){tasks.push({id:Date.now(),title:input.value,completed:false,tag:tag,priority:pri});}
+  input.value='';render();
+}
+
+async function toggle(id){
+  const t=tasks.find(x=>x.id===id);t.completed=!t.completed;
+  try{await fetch(`${API}/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({completed:t.completed})});}catch(e){}
+  render();
+}
+
+async function del(id){
+  tasks=tasks.filter(t=>t.id!==id);
+  try{await fetch(`${API}/${id}`,{method:'DELETE'});}catch(e){}
+  render();
+}
+
+document.querySelectorAll('.nav-item').forEach(n=>{
+  n.addEventListener('click',()=>{
+    document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));
+    n.classList.add('active');
+    const txt=n.textContent.toLowerCase();
+    if(txt.includes('completed'))filter='completed';
+    else if(txt.includes('pending'))filter='pending';
+    else if(txt.includes('high'))filter='high';
+    else filter='all';
+    render();
+  });
+});
+
+document.getElementById('taskInput').addEventListener('keypress',e=>{if(e.key==='Enter')addTask();});
+load();
+</script>
+</body>
+</html>
