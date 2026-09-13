@@ -1,4 +1,4 @@
-name: CI/CD Pipeline - Todo App
+name: CI/CD Pipeline - Cloud Todo App
 
 on:
   push:
@@ -8,12 +8,12 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-      # 1. Checkout code
+      # 1. Check out the source code
       - name: Checkout Source Code
         uses: actions/checkout@v4
 
-      # 2. Setup Node.js
-      - name: Setup Node.js
+      # 2. Set up Node.js
+      - name: Setup Node.js 18
         uses: actions/setup-node@v4
         with:
           node-version: '18'
@@ -22,25 +22,97 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      # 4. Run tests
+      # 4. Run automated unit tests (pipeline stops here if tests fail)
       - name: Run Unit Tests
         run: |
           node server.js &
-          sleep 2
+          sleep 3
           node test/test.js
 
-      # 5. Build Docker image
+      # 5. Build the Docker container image
       - name: Build Docker Image
-        run: docker build -t cloud-todo-app .
+        run: docker build -t cloud-todo-app:${{ github.sha }} -t cloud-todo-app:latest .
 
-      # 6. Send Telegram notification
-      - name: Send Telegram Notification
+      # 6. Save the Docker image to a tar file for transfer
+      - name: Save Docker Image
+        run: docker save cloud-todo-app:latest -o cloud-todo-app.tar
+      - name: Upload Image Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloud-todo-image
+          path: cloud-todo-app.tar
+
+  deploy:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Docker Image
+        uses: actions/download-artifact@v4
+        with:
+          name: cloud-todo-image
+
+      # 7. Transfer the built Docker image to AWS EC2 via SCP
+      - name: Transfer Docker Image to EC2
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          source: "cloud-todo-app.tar"
+          target: "/opt/cloud-todo"
+
+      # 8. Deploy on AWS EC2 via SSH (loads the image and restarts the container)
+      - name: Deploy to AWS EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd /opt/cloud-todo
+            # Stop and remove the old container
+            docker stop cloud-todo || true
+            docker rm cloud-todo || true
+            docker rmi cloud-todo-app:latest || true
+            # Load the new image that was just transferred
+            docker load -i cloud-todo-app.tar
+            # Run the new container on port 80
+            docker run -d \
+              --name cloud-todo \
+              --restart unless-stopped \
+              -p 80:3000 \
+              -e AWS_REGION=${{ secrets.AWS_REGION }} \
+              -e TASKS_TABLE=Tasks \
+              cloud-todo-app:latest
+            # Verify the deployment is healthy
+            sleep 5
+            curl -f http://localhost:80/health && echo "DEPLOYMENT SUCCESSFUL"
+
+      # 9. Send Telegram notification about deployment status
+      #    (optional — does not fail the pipeline if the bot is not configured yet)
+      - name: Send Telegram Notification (Success)
+        if: success()
+        continue-on-error: true
         uses: appleboy/telegram-action@master
         with:
           to: ${{ secrets.TELEGRAM_CHAT_ID }}
           token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           message: |
-            CI/CD Pipeline Status
+            ✅ CI/CD Pipeline — SUCCESS
             Repository: ${{ github.repository }}
-            Status: Build & Deploy SUCCESS
-            Commit by: ${{ github.actor }}
+            Commit: ${{ github.sha }}
+            Deployed by: ${{ github.actor }}
+            Message: ${{ github.event.head_commit.message }}
+
+      - name: Send Telegram Notification (Failure)
+        if: failure()
+        continue-on-error: true
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_CHAT_ID }}
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          message: |
+            ❌ CI/CD Pipeline — FAILED
+            Repository: ${{ github.repository }}
+            Commit: ${{ github.sha }}
+            Check logs: ${{ github.server_url }}/${{ github.repository }}/actions
