@@ -3,250 +3,340 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CloudTodo - DevOps Task Manager</title>
+<title>Cloud Todo — Daily Task Manager</title>
 <style>
-:root {
-  --navy:#1a1a2e; --navy2:#16213e; --blue:#0f3460; --accent:#4F81BD;
-  --green:#00b894; --orange:#fdcb6e; --red:#e17055; --purple:#6c5ce7;
-  --text:#eaeaea; --text2:#a0a0b8; --card:#1e1e3a; --card2:#252548;
-}
-* { margin:0; padding:0; box-sizing:border-box; font-family:'Inter','Segoe UI',sans-serif; }
-body { background:var(--navy); color:var(--text); display:flex; min-height:100vh; }
+  :root {
+    --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
+    --primary:#4f46e5; --primary-dark:#4338ca; --primary-soft:#eef2ff;
+    --green:#059669; --amber:#d97706; --red:#dc2626;
+    --card:#ffffff; --bg:#f1f5f9; --input:#f8fafc;
+    --shadow:0 1px 3px rgba(15,23,42,.08), 0 8px 24px rgba(15,23,42,.06);
+  }
+  body.dark {
+    --ink:#f1f5f9; --muted:#94a3b8; --line:#334155;
+    --primary-soft:rgba(99,102,241,.18);
+    --green:#34d399; --amber:#fbbf24; --red:#f87171;
+    --card:#1e293b; --bg:#0b1120; --input:#0f172a;
+    --shadow:0 1px 3px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; font-family:'Inter','Segoe UI',system-ui,-apple-system,sans-serif; }
+  body { background:var(--bg); min-height:100vh; display:flex; justify-content:center;
+    padding:32px 16px; transition:background .3s ease; }
+  .container { width:100%; max-width:640px; }
 
-/* SIDEBAR */
-.sidebar { width:240px; background:var(--navy2); padding:24px 0; flex-shrink:0; border-right:1px solid rgba(255,255,255,0.05); }
-.sidebar .logo { padding:0 24px 28px; font-size:20px; font-weight:800; display:flex; align-items:center; gap:10px; }
-.sidebar .logo span { color:var(--accent); }
-.nav-item { padding:12px 24px; display:flex; align-items:center; gap:12px; font-size:14px; color:var(--text2); cursor:pointer; transition:all 0.2s; border-left:3px solid transparent; }
-.nav-item:hover, .nav-item.active { background:rgba(79,129,189,0.1); color:var(--text); border-left-color:var(--accent); }
-.nav-item .count { margin-left:auto; background:var(--card); padding:2px 8px; border-radius:10px; font-size:11px; }
-.sidebar .tag-section { padding:16px 24px; }
-.sidebar .tag-section h4 { font-size:11px; text-transform:uppercase; color:var(--text2); margin-bottom:12px; letter-spacing:1px; }
-.tag-item { padding:6px 0; display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text2); cursor:pointer; }
-.tag-item .dot { width:8px; height:8px; border-radius:50%; }
+  /* ── HERO ── */
+  .hero {
+    background:linear-gradient(135deg,#312e81 0%,#4f46e5 60%,#6366f1 100%);
+    border-radius:20px 20px 0 0; padding:26px 28px 24px; color:#fff;
+    position:relative; overflow:hidden;
+  }
+  body.dark .hero { background:linear-gradient(135deg,#1e1b4b 0%,#312e81 60%,#4338ca 100%); }
+  .hero::after { content:''; position:absolute; width:220px; height:220px; border-radius:50%;
+    background:rgba(255,255,255,.08); top:-90px; right:-60px; pointer-events:none; }
+  .hero-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:22px; gap:8px; position:relative; z-index:2; }
+  .brand { display:flex; align-items:center; gap:10px; font-weight:700; font-size:15px; letter-spacing:.3px; }
+  .brand .logo { width:34px; height:34px; border-radius:10px; background:rgba(255,255,255,.18);
+    display:flex; align-items:center; justify-content:center; font-size:17px; }
+  .brand small { display:block; font-weight:500; font-size:11px; opacity:.75; letter-spacing:.2px; }
+  .hero-actions { display:flex; align-items:center; gap:8px; }
+  .cloud-badge { background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.22);
+    padding:6px 12px; border-radius:999px; font-size:11px; font-weight:600; }
+  .theme-toggle { background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.22);
+    width:34px; height:34px; border-radius:999px; cursor:pointer; font-size:15px;
+    display:flex; align-items:center; justify-content:center; transition:.2s; flex-shrink:0; }
+  .theme-toggle:hover { background:rgba(255,255,255,.3); transform:rotate(15deg); }
+  .greeting-row { display:flex; justify-content:space-between; align-items:center; z-index:1; position:relative; }
+  .greeting h1 { font-size:24px; font-weight:800; letter-spacing:-.3px; }
+  .greeting .date { font-size:13px; opacity:.8; margin-top:4px; }
+  .ring { position:relative; width:74px; height:74px; }
+  .ring svg { transform:rotate(-90deg); }
+  .ring .track { fill:none; stroke:rgba(255,255,255,.22); stroke-width:7; }
+  .ring .bar { fill:none; stroke:#a5b4fc; stroke-width:7; stroke-linecap:round;
+    transition:stroke-dashoffset .6s ease; }
+  .ring .pct { position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    font-size:15px; font-weight:800; }
 
-/* MAIN */
-.main { flex:1; padding:32px 40px; overflow-y:auto; }
-.header { display:flex; justify-content:space-between; align-items:center; margin-bottom:28px; }
-.header h1 { font-size:28px; font-weight:700; }
-.header .date { color:var(--text2); font-size:13px; margin-top:4px; }
-.cloud-badge { background:linear-gradient(135deg,var(--green),var(--accent)); padding:8px 16px; border-radius:8px; font-size:12px; font-weight:600; display:flex; align-items:center; gap:8px; }
+  /* ── CARD ── */
+  .card { background:var(--card); border-radius:0 0 20px 20px; box-shadow:var(--shadow);
+    padding:24px 24px 26px; transition:background .3s ease; }
 
-/* STATS CARDS */
-.stats { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:28px; }
-.stat-card { background:var(--card); padding:20px; border-radius:14px; border:1px solid rgba(255,255,255,0.05); }
-.stat-card .icon { width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:20px; margin-bottom:12px; }
-.stat-card .num { font-size:28px; font-weight:800; }
-.stat-card .lbl { font-size:12px; color:var(--text2); margin-top:2px; }
+  .stats { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:20px; }
+  .stat { border:1px solid var(--line); border-radius:14px; padding:12px 14px;
+    display:flex; align-items:center; gap:10px; }
+  .stat .ico { width:34px; height:34px; border-radius:10px; display:flex; align-items:center;
+    justify-content:center; font-size:15px; }
+  .ico-total  { background:#eef2ff; }  body.dark .ico-total  { background:rgba(99,102,241,.18); }
+  .ico-active { background:#fffbeb; }  body.dark .ico-active { background:rgba(251,191,36,.15); }
+  .ico-done   { background:#ecfdf5; }  body.dark .ico-done   { background:rgba(16,185,129,.15); }
+  .stat .num { font-size:19px; font-weight:800; color:var(--ink); line-height:1; }
+  .stat .lbl { font-size:10.5px; color:var(--muted); margin-top:3px; text-transform:uppercase; letter-spacing:.4px; }
 
-/* PROGRESS BAR */
-.progress-section { background:var(--card); padding:20px; border-radius:14px; margin-bottom:24px; }
-.progress-section .top { display:flex; justify-content:space-between; margin-bottom:10px; font-size:14px; }
-.progress-bar { height:10px; background:var(--navy); border-radius:5px; overflow:hidden; }
-.progress-fill { height:100%; background:linear-gradient(90deg,var(--green),var(--accent)); border-radius:5px; transition:width 0.5s; }
+  .add-row { display:flex; gap:8px; margin-bottom:14px; }
+  .add-row input[type=text] { flex:1; border:1.5px solid var(--line); border-radius:12px;
+    padding:12px 14px; font-size:14px; outline:none; color:var(--ink); background:var(--input); transition:.2s; }
+  .add-row input[type=text]:focus { border-color:var(--primary); box-shadow:0 0 0 3px var(--primary-soft); }
+  .add-row input::placeholder { color:var(--muted); }
+  select { border:1.5px solid var(--line); border-radius:12px; padding:0 10px; font-size:12.5px;
+    color:var(--ink); background:var(--input); outline:none; cursor:pointer; }
+  .add-row button { background:var(--primary); color:#fff; border:none; border-radius:12px;
+    padding:0 20px; font-size:14px; font-weight:700; cursor:pointer; transition:.15s; }
+  .add-row button:hover { background:var(--primary-dark); transform:translateY(-1px); }
 
-/* INPUT */
-.add-bar { display:flex; gap:10px; margin-bottom:20px; }
-.add-bar input { flex:1; background:var(--card); border:1px solid rgba(255,255,255,0.1); padding:14px 18px; border-radius:10px; color:var(--text); font-size:14px; outline:none; }
-.add-bar input:focus { border-color:var(--accent); }
-.add-bar select { background:var(--card); border:1px solid rgba(255,255,255,0.1); padding:0 12px; border-radius:10px; color:var(--text); font-size:13px; outline:none; }
-.add-bar button { background:var(--accent); border:none; padding:0 24px; border-radius:10px; color:#fff; font-size:14px; font-weight:600; cursor:pointer; }
-.add-bar button:hover { background:#6b9ad6; }
+  .filters { display:flex; gap:6px; margin-bottom:14px; flex-wrap:wrap; }
+  .filters button { border:1px solid var(--line); background:var(--card); color:var(--muted);
+    padding:7px 15px; border-radius:999px; font-size:12.5px; font-weight:600; cursor:pointer; transition:.15s; }
+  .filters button:hover { border-color:var(--primary); color:var(--primary); }
+  .filters button.active { background:var(--ink); border-color:var(--ink); color:var(--card); }
 
-/* TASKS */
-.tasks { display:flex; flex-direction:column; gap:10px; }
-.task { background:var(--card); padding:16px 20px; border-radius:12px; display:flex; align-items:center; gap:16px; border-left:4px solid var(--accent); transition:all 0.2s; }
-.task:hover { background:var(--card2); transform:translateX(4px); }
-.task.high { border-left-color:var(--red); }
-.task.medium { border-left-color:var(--orange); }
-.task.low { border-left-color:var(--green); }
-.task .check { width:24px; height:24px; border:2px solid var(--text2); border-radius:8px; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; }
-.task.done .check { background:var(--green); border-color:var(--green); }
-.task .info { flex:1; }
-.task .title { font-size:15px; font-weight:500; }
-.task.done .title { text-decoration:line-through; opacity:0.5; }
-.task .meta { display:flex; gap:8px; margin-top:6px; }
-.task .pill { font-size:10px; padding:3px 10px; border-radius:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; }
-.pill.devops { background:rgba(108,92,231,0.2); color:#a29bfe; }
-.pill.docker { background:rgba(79,129,189,0.2); color:#74b9ff; }
-.pill.aws { background:rgba(253,203,110,0.2); color:var(--orange); }
-.pill.cicd { background:rgba(0,184,148,0.2); color:#55efc4; }
-.pill.git { background:rgba(225,112,85,0.2); color:#fab1a0; }
-.pill.monitor { background:rgba(253,121,168,0.2); color:#fd79a8; }
-.pill.notify { background:rgba(85,239,196,0.2); color:#55efc4; }
-.task .priority { font-size:11px; font-weight:700; padding:3px 8px; border-radius:6px; }
-.priority.high { background:rgba(225,112,85,0.2); color:var(--red); }
-.priority.medium { background:rgba(253,203,110,0.2); color:var(--orange); }
-.priority.low { background:rgba(0,184,148,0.2); color:var(--green); }
-.task .del { color:var(--text2); cursor:pointer; font-size:18px; opacity:0.4; transition:0.2s; }
-.task .del:hover { opacity:1; color:var(--red); }
+  .task-list { list-style:none; display:flex; flex-direction:column; gap:8px; }
+  .task { display:flex; align-items:center; gap:12px; padding:13px 14px; border:1px solid var(--line);
+    border-radius:14px; transition:.15s; background:var(--card); }
+  .task:hover { border-color:#818cf8; box-shadow:0 2px 10px rgba(79,70,229,.12); }
+  .task .check { width:22px; height:22px; border:2px solid var(--muted); border-radius:8px; cursor:pointer;
+    flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:13px; color:#fff; transition:.15s; }
+  .task .check:hover { border-color:var(--primary); }
+  .task.done .check { background:#059669; border-color:#059669; }
+  body.dark .task.done .check { background:#10b981; border-color:#10b981; }
+  .task .info { flex:1; min-width:0; }
+  .task .title { font-size:14px; font-weight:600; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .task.done .title { text-decoration:line-through; color:var(--muted); font-weight:500; }
+  .task .meta { display:flex; gap:6px; margin-top:5px; }
+  .tag { font-size:10px; font-weight:700; padding:2.5px 9px; border-radius:999px; text-transform:uppercase; letter-spacing:.4px; }
+  .pri { font-size:10px; font-weight:700; padding:2.5px 9px; border-radius:999px; display:flex; align-items:center; gap:4px; }
+  .pri::before { content:''; width:6px; height:6px; border-radius:50%; background:currentColor; }
+  .pri.high   { background:rgba(220,38,38,.1);  color:#dc2626; }
+  .pri.medium { background:rgba(217,119,6,.1);  color:#d97706; }
+  .pri.low    { background:rgba(5,150,105,.1);  color:#059669; }
+  body.dark .pri.high   { background:rgba(239,68,68,.15);  color:#f87171; }
+  body.dark .pri.medium { background:rgba(251,191,36,.15); color:#fbbf24; }
+  body.dark .pri.low    { background:rgba(16,185,129,.15); color:#34d399; }
+  .task .del { color:var(--muted); font-size:19px; cursor:pointer; transition:.15s; flex-shrink:0;
+    width:28px; height:28px; display:flex; align-items:center; justify-content:center; border-radius:8px; opacity:.6; }
+  .task .del:hover { color:#dc2626; background:rgba(220,38,38,.1); opacity:1; }
+
+  .empty { text-align:center; padding:36px 10px; color:var(--muted); }
+  .empty .big { font-size:34px; margin-bottom:8px; }
+  .empty p { font-size:13.5px; }
+
+  /* tag colors — light */
+  .tag.personal { background:#ecfdf5; color:#059669; }
+  .tag.work     { background:#eef2ff; color:#4f46e5; }
+  .tag.study    { background:#f5f3ff; color:#7c3aed; }
+  .tag.health   { background:#fff7ed; color:#ea580c; }
+  .tag.shopping { background:#fdf2f8; color:#db2777; }
+  .tag.general  { background:#f1f5f9; color:#64748b; }
+  .tag.devops, .tag.git, .tag.docker, .tag.aws, .tag.cicd, .tag.monitor, .tag.notify, .tag.test
+    { background:#eef2ff; color:#4f46e5; }
+  /* tag colors — dark */
+  body.dark .tag.personal { background:rgba(16,185,129,.15); color:#34d399; }
+  body.dark .tag.work     { background:rgba(99,102,241,.18);  color:#a5b4fc; }
+  body.dark .tag.study    { background:rgba(139,92,246,.18);  color:#c4b5fd; }
+  body.dark .tag.health   { background:rgba(249,115,22,.15);  color:#fdba74; }
+  body.dark .tag.shopping { background:rgba(236,72,153,.15);  color:#f9a8d4; }
+  body.dark .tag.general  { background:rgba(100,116,139,.2);  color:#cbd5e1; }
+  body.dark .tag.devops, body.dark .tag.git, body.dark .tag.docker, body.dark .tag.aws,
+  body.dark .tag.cicd, body.dark .tag.monitor, body.dark .tag.notify, body.dark .tag.test
+    { background:rgba(99,102,241,.18); color:#a5b4fc; }
+
+  @media (max-width:520px) {
+    .add-row { flex-wrap:wrap; }
+    .add-row input[type=text] { width:100%; }
+    .stats { grid-template-columns:1fr; }
+  }
 </style>
 </head>
 <body>
-<div class="sidebar">
-  <div class="logo">☁️ Cloud<span>Todo</span></div>
-  <div class="nav-item active">📋 All Tasks <span class="count" id="navAll">7</span></div>
-  <div class="nav-item">✅ Completed <span class="count" id="navDone">2</span></div>
-  <div class="nav-item">⏳ Pending <span class="count" id="navPending">5</span></div>
-  <div class="nav-item">🔥 High Priority <span class="count" id="navHigh">3</span></div>
-  <div class="tag-section">
-    <h4>Categories</h4>
-    <div class="tag-item"><div class="dot" style="background:#a29bfe"></div>DevOps</div>
-    <div class="tag-item"><div class="dot" style="background:#74b9ff"></div>Docker</div>
-    <div class="tag-item"><div class="dot" style="background:#fdcb6e"></div>AWS</div>
-    <div class="tag-item"><div class="dot" style="background:#55efc4"></div>CI/CD</div>
-    <div class="tag-item"><div class="dot" style="background:#fab1a0"></div>Git</div>
-  </div>
-  <div class="tag-section" style="margin-top:auto">
-    <h4 style="color:#55efc4">🟢 System Healthy</h4>
-    <div class="tag-item" style="font-size:11px">Uptime: 99.9%</div>
-    <div class="tag-item" style="font-size:11px">Region: ap-south-1</div>
-    <div class="tag-item" style="font-size:11px">Container: Running</div>
-  </div>
-</div>
+<div class="container">
 
-<div class="main">
-  <div class="header">
-    <div>
-      <h1>Project Tasks</h1>
-      <div class="date" id="todayDate">DevOps Pipeline Dashboard</div>
+  <header class="hero">
+    <div class="hero-top">
+      <div class="brand">
+        <div class="logo">☁️</div>
+        <div>Cloud&nbsp;Todo<small>Daily task manager</small></div>
+      </div>
+      <div class="hero-actions">
+        <div class="cloud-badge">🚀 AWS · Docker</div>
+        <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark / light mode">🌙</button>
+      </div>
     </div>
-    <div class="cloud-badge">🚀 Deployed on AWS EC2</div>
-  </div>
+    <div class="greeting-row">
+      <div class="greeting">
+        <h1 id="greeting">Hello 👋</h1>
+        <p class="date" id="todayDate">—</p>
+      </div>
+      <div class="ring">
+        <svg width="74" height="74">
+          <circle class="track" cx="37" cy="37" r="31"></circle>
+          <circle class="bar" id="ringBar" cx="37" cy="37" r="31"
+                  stroke-dasharray="194.8" stroke-dashoffset="194.8"></circle>
+        </svg>
+        <div class="pct" id="ringPct">0%</div>
+      </div>
+    </div>
+  </header>
 
-  <div class="stats">
-    <div class="stat-card">
-      <div class="icon" style="background:rgba(79,129,189,0.2)">📋</div>
-      <div class="num" id="sTotal">7</div><div class="lbl">Total Tasks</div>
+  <main class="card">
+    <div class="stats">
+      <div class="stat"><div class="ico ico-total">🗂️</div>
+        <div><div class="num" id="sTotal">0</div><div class="lbl">Total</div></div></div>
+      <div class="stat"><div class="ico ico-active">⏳</div>
+        <div><div class="num" id="sActive">0</div><div class="lbl">Active</div></div></div>
+      <div class="stat"><div class="ico ico-done">✅</div>
+        <div><div class="num" id="sDone">0</div><div class="lbl">Done</div></div></div>
     </div>
-    <div class="stat-card">
-      <div class="icon" style="background:rgba(253,203,110,0.2)">⏳</div>
-      <div class="num" id="sPending">5</div><div class="lbl">In Progress</div>
-    </div>
-    <div class="stat-card">
-      <div class="icon" style="background:rgba(0,184,148,0.2)">✅</div>
-      <div class="num" id="sDone">2</div><div class="lbl">Completed</div>
-    </div>
-    <div class="stat-card">
-      <div class="icon" style="background:rgba(225,112,85,0.2)">🔥</div>
-      <div class="num" id="sHigh">3</div><div class="lbl">High Priority</div>
-    </div>
-  </div>
 
-  <div class="progress-section">
-    <div class="top"><span>Project Completion Progress</span><span id="pctText">29%</span></div>
-    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:29%"></div></div>
-  </div>
+    <form class="add-row" onsubmit="return false;">
+      <input type="text" id="taskInput" placeholder="What do you need to do today?" autocomplete="off">
+      <select id="tagSelect" title="Category">
+        <option value="personal">Personal</option><option value="work">Work</option>
+        <option value="study">Study</option><option value="health">Health</option>
+        <option value="shopping">Shopping</option>
+      </select>
+      <select id="priSelect" title="Priority">
+        <option value="high">High</option><option value="medium" selected>Medium</option>
+        <option value="low">Low</option>
+      </select>
+      <button onclick="addTask()">Add</button>
+    </form>
 
-  <div class="add-bar">
-    <input type="text" id="taskInput" placeholder="Add a new task...">
-    <select id="tagSelect">
-      <option value="devops">DevOps</option><option value="docker">Docker</option>
-      <option value="aws">AWS</option><option value="cicd">CI/CD</option>
-      <option value="git">Git</option><option value="monitor">Monitor</option>
-    </select>
-    <select id="priSelect">
-      <option value="high">High</option><option value="medium" selected>Medium</option>
-      <option value="low">Low</option>
-    </select>
-    <button onclick="addTask()">+ Add Task</button>
-  </div>
+    <div class="filters">
+      <button class="active" onclick="setFilter('all',this)">All</button>
+      <button onclick="setFilter('active',this)">Active</button>
+      <button onclick="setFilter('completed',this)">Completed</button>
+      <button onclick="setFilter('high',this)">🔥 High priority</button>
+    </div>
 
-  <div class="tasks" id="taskList"></div>
+    <ul class="task-list" id="taskList"></ul>
+
+    <div class="empty" id="emptyState" style="display:none">
+      <div class="big">🌤️</div>
+      <p><b>All clear!</b><br>Nothing here — add your first task above.</p>
+    </div>
+  </main>
 </div>
 
 <script>
-const API='/api/tasks'; let tasks=[]; let filter='all';
+const API = '/api/tasks';
+let tasks = [], filter = 'all';
 
-async function load(){
-  try{const r=await fetch(API);tasks=await r.json();}catch(e){
-    tasks=[
-      {id:1,title:"Set up AWS EC2 instance and configure security groups",completed:true,tag:"devops",priority:"high"},
-      {id:2,title:"Create GitHub repository and push initial code",completed:true,tag:"git",priority:"high"},
-      {id:3,title:"Write Dockerfile and build container image",completed:false,tag:"docker",priority:"high"},
-      {id:4,title:"Configure GitHub Actions CI/CD pipeline",completed:false,tag:"cicd",priority:"high"},
-      {id:5,title:"Integrate DynamoDB for task storage",completed:false,tag:"aws",priority:"medium"},
-      {id:6,title:"Set up CloudWatch monitoring and alarms",completed:false,tag:"monitor",priority:"medium"},
-      {id:7,title:"Add Telegram bot for deployment notifications",completed:false,tag:"notify",priority:"low"},
+/* ── Theme (dark / light) ── */
+function applyTheme(dark) {
+  document.body.classList.toggle('dark', dark);
+  document.getElementById('themeToggle').textContent = dark ? '☀️' : '🌙';
+  try { localStorage.setItem('cloudtodo-theme', dark ? 'dark' : 'light'); } catch (e) {}
+}
+function toggleTheme() {
+  applyTheme(!document.body.classList.contains('dark'));
+}
+(function initTheme() {
+  let saved = null;
+  try { saved = localStorage.getItem('cloudtodo-theme'); } catch (e) {}
+  const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  applyTheme(saved ? saved === 'dark' : prefersDark);
+})();
+
+/* ── Greeting + date ── */
+(function(){
+  const h = new Date().getHours();
+  document.getElementById('greeting').textContent =
+    (h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening') + ' 👋';
+  document.getElementById('todayDate').textContent =
+    new Date().toLocaleDateString('en-IN', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+})();
+
+async function load() {
+  try {
+    const r = await fetch(API);
+    tasks = await r.json();
+  } catch (e) {
+    tasks = [
+      { id:'1', title:'Morning walk — 30 minutes', completed:true,  tag:'health',   priority:'medium' },
+      { id:'2', title:'Complete MCA minor-project report', completed:false, tag:'study',  priority:'high' },
+      { id:'3', title:'Team project meeting at 4:00 PM', completed:false, tag:'work',   priority:'high' },
+      { id:'4', title:'Buy groceries on the way home', completed:false, tag:'shopping', priority:'low' },
+      { id:'5', title:'Read 20 pages of a book', completed:false, tag:'personal', priority:'low' },
+      { id:'6', title:'Call home in the evening', completed:false, tag:'personal', priority:'medium' },
     ];
   }
   render();
 }
 
-function render(){
-  let shown=tasks;
-  if(filter==='completed')shown=tasks.filter(t=>t.completed);
-  if(filter==='pending')shown=tasks.filter(t=>!t.completed);
-  if(filter==='high')shown=tasks.filter(t=>t.priority==='high');
+function render() {
+  let shown = tasks;
+  if (filter === 'active')     shown = tasks.filter(t => !t.completed);
+  if (filter === 'completed')  shown = tasks.filter(t =>  t.completed);
+  if (filter === 'high')       shown = tasks.filter(t => t.priority === 'high');
 
-  document.getElementById('taskList').innerHTML=shown.map(t=>`
-    <div class="task ${t.completed?'done':''} ${t.priority||'medium'}">
-      <div class="check" onclick="toggle(${t.id})">${t.completed?'<span style="color:#fff;font-size:14px">&#10003;</span>':''}</div>
-      <div class="info">
-        <div class="title">${t.title}</div>
-        <div class="meta">
-          <span class="pill ${t.tag||'devops'}">${(t.tag||'devops').toUpperCase()}</span>
-          <span class="priority ${t.priority||'medium'}">${(t.priority||'medium').toUpperCase()}</span>
+  const list = document.getElementById('taskList');
+  const empty = document.getElementById('emptyState');
+  if (shown.length === 0) { list.innerHTML = ''; empty.style.display = 'block'; }
+  else {
+    empty.style.display = 'none';
+    list.innerHTML = shown.map(t => `
+      <li class="task ${t.completed ? 'done' : ''}">
+        <div class="check" onclick="toggle('${t.id}')">${t.completed ? '&#10003;' : ''}</div>
+        <div class="info">
+          <div class="title">${t.title}</div>
+          <div class="meta">
+            <span class="tag ${(t.tag||'general').toLowerCase()}">${(t.tag||'general')}</span>
+            <span class="pri ${(t.priority||'medium').toLowerCase()}">${(t.priority||'medium')}</span>
+          </div>
         </div>
-      </div>
-      <span class="del" onclick="del(${t.id})">&#215;</span>
-    </div>`).join('');
+        <div class="del" onclick="del('${t.id}')">&#215;</div>
+      </li>`).join('');
+  }
 
-  // update stats
-  const total=tasks.length, done=tasks.filter(t=>t.completed).length;
-  const pending=total-done, high=tasks.filter(t=>t.priority==='high').length;
-  const pct=total?Math.round(done/total*100):0;
-  document.getElementById('sTotal').textContent=total;
-  document.getElementById('sDone').textContent=done;
-  document.getElementById('sPending').textContent=pending;
-  document.getElementById('sHigh').textContent=high;
-  document.getElementById('navAll').textContent=total;
-  document.getElementById('navDone').textContent=done;
-  document.getElementById('navPending').textContent=pending;
-  document.getElementById('navHigh').textContent=high;
-  document.getElementById('progressFill').style.width=pct+'%';
-  document.getElementById('pctText').textContent=pct+'%';
+  const total = tasks.length, done = tasks.filter(t => t.completed).length;
+  const pct = total ? Math.round(done / total * 100) : 0;
+  document.getElementById('sTotal').textContent = total;
+  document.getElementById('sActive').textContent = total - done;
+  document.getElementById('sDone').textContent = done;
+  document.getElementById('ringPct').textContent = pct + '%';
+  document.getElementById('ringBar').style.strokeDashoffset = 194.8 * (1 - pct / 100);
 }
 
-async function addTask(){
-  const input=document.getElementById('taskInput');
-  const tag=document.getElementById('tagSelect').value;
-  const pri=document.getElementById('priSelect').value;
-  if(!input.value.trim())return;
-  try{
-    const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({title:input.value,tag:tag,priority:pri})});
+async function addTask() {
+  const input = document.getElementById('taskInput');
+  const tag = document.getElementById('tagSelect').value;
+  const pri = document.getElementById('priSelect').value;
+  if (!input.value.trim()) { input.focus(); return; }
+  try {
+    const r = await fetch(API, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ title: input.value, tag, priority: pri })
+    });
     tasks.push(await r.json());
-  }catch(e){tasks.push({id:Date.now(),title:input.value,completed:false,tag:tag,priority:pri});}
-  input.value='';render();
-}
-
-async function toggle(id){
-  const t=tasks.find(x=>x.id===id);t.completed=!t.completed;
-  try{await fetch(`${API}/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({completed:t.completed})});}catch(e){}
+  } catch (e) {
+    tasks.push({ id:String(Date.now()), title:input.value, completed:false, tag, priority:pri });
+  }
+  input.value = '';
   render();
 }
 
-async function del(id){
-  tasks=tasks.filter(t=>t.id!==id);
-  try{await fetch(`${API}/${id}`,{method:'DELETE'});}catch(e){}
+async function toggle(id) {
+  const t = tasks.find(x => String(x.id) === String(id));
+  t.completed = !t.completed;
+  try {
+    await fetch(`${API}/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ completed: t.completed }) });
+  } catch (e) {}
   render();
 }
 
-document.querySelectorAll('.nav-item').forEach(n=>{
-  n.addEventListener('click',()=>{
-    document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));
-    n.classList.add('active');
-    const txt=n.textContent.toLowerCase();
-    if(txt.includes('completed'))filter='completed';
-    else if(txt.includes('pending'))filter='pending';
-    else if(txt.includes('high'))filter='high';
-    else filter='all';
-    render();
-  });
-});
+async function del(id) {
+  tasks = tasks.filter(t => String(t.id) !== String(id));
+  try { await fetch(`${API}/${id}`, { method:'DELETE' }); } catch (e) {}
+  render();
+}
 
-document.getElementById('taskInput').addEventListener('keypress',e=>{if(e.key==='Enter')addTask();});
+function setFilter(f, btn) {
+  filter = f;
+  document.querySelectorAll('.filters button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+document.getElementById('taskInput').addEventListener('keypress', e => { if (e.key === 'Enter') addTask(); });
 load();
 </script>
 </body>
