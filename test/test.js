@@ -1,7 +1,23 @@
-// Basic unit tests for Todo API
+// Unit tests for the Todo REST API
+// NOTE: BASE uses 127.0.0.1 (IPv4) instead of "localhost" because CI runners
+// (GitHub Actions) resolve localhost to IPv6 (::1) while the server listens
+// on IPv4 (0.0.0.0), which causes "fetch failed" errors.
 const assert = require('assert');
 
-const BASE = 'http://localhost:3000';
+const BASE = 'http://127.0.0.1:3000';
+
+// Wait until the server is accepting connections (up to ~20 seconds)
+async function waitForServer(retries = 20) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      await fetch(`${BASE}/health`);
+      return;
+    } catch {
+      await new Promise(r => setTimeout(r, 1000));
+    }
+  }
+  throw new Error('Server did not become ready in time');
+}
 
 async function runTests() {
     console.log('Running Todo API Tests...\n');
@@ -17,6 +33,9 @@ async function runTests() {
             failed++;
         }
     }
+
+    // Make sure the server is up before running the tests
+    await waitForServer();
 
     // Test 1: GET all tasks
     await test('GET /api/tasks returns array', async () => {
@@ -69,4 +88,7 @@ async function runTests() {
     process.exit(failed > 0 ? 1 : 0);
 }
 
-runTests().catch(console.error);
+runTests().catch(e => {
+    console.error(e.message);
+    process.exit(1);
+});
